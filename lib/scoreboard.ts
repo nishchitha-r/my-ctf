@@ -84,14 +84,54 @@ export async function addPoints(
 }
 
 export async function getScoreboard() {
-  const { data, error } = await supabase
-    .from("players")
-    .select("name, score")
-    .order("score", { ascending: false });
+  const { data: players, error: playersError } =
+    await supabase
+      .from("players")
+      .select("id, name, score")
+      .order("score", { ascending: false });
 
-  if (error) {
-    throw new Error(error.message);
+  if (playersError) {
+    throw new Error(playersError.message);
   }
 
-  return data ?? [];
+  if (!players || players.length === 0) {
+    return [];
+  }
+
+  const { data: submissions, error: submissionsError } =
+    await supabase
+      .from("submissions")
+      .select("player_id, solved_at");
+
+  if (submissionsError) {
+    throw new Error(submissionsError.message);
+  }
+
+  const scoreboard = players.map((player) => {
+    const playerSubmissions =
+      submissions?.filter(
+        (submission) =>
+          submission.player_id === player.id
+      ) ?? [];
+
+    const latestSolve =
+      playerSubmissions.length > 0
+        ? playerSubmissions
+            .map((submission) => submission.solved_at)
+            .sort(
+              (a, b) =>
+                new Date(b).getTime() -
+                new Date(a).getTime()
+            )[0]
+        : null;
+
+    return {
+      name: player.name,
+      score: player.score,
+      solvedCount: playerSubmissions.length,
+      latestSolve,
+    };
+  });
+
+  return scoreboard;
 }

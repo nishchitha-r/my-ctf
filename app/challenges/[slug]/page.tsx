@@ -1,6 +1,7 @@
 import FlagForm from "./FlagForm";
 import AIChat from "./AIChat";
 import { challenges } from "@/data/challenges";
+import TargetPanel from "./TargetPanel";
 
 type ChallengePageProps = {
   params: Promise<{
@@ -104,6 +105,8 @@ export default async function ChallengePage({
     </p>
   </div>
 )}
+
+{challenge.slug === "broken-gate" && <TargetPanel />}
 
 {challenge.slug === "silent-ai" && <AIChat />}
 

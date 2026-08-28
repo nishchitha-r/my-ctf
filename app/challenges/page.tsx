@@ -32,25 +32,7 @@ export default function Challenges() {
   return (
     <main className="min-h-screen bg-black text-green-400 font-mono">
       {/* Navigation */}
-      <nav className="flex items-center justify-between border-b border-green-900 px-8 py-5">
-        <a href="/" className="text-xl font-bold tracking-widest">
-          NULL//DROP
-        </a>
-
-        <div className="flex gap-6 text-sm">
-          <a href="/" className="hover:text-white">
-            HOME
-          </a>
-
-          <a href="/challenges" className="text-white">
-            CHALLENGES
-          </a>
-
-          <a href="/scoreboard" className="hover:text-white">
-            SCOREBOARD
-          </a>
-        </div>
-      </nav>
+      
 
       {/* Header */}
       <section className="mx-auto max-w-5xl px-8 py-16">

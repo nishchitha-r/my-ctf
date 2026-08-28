@@ -40,18 +40,7 @@ export default async function ChallengePage({
   return (
     <main className="min-h-screen bg-black text-green-400 font-mono">
       {/* Navigation */}
-      <nav className="flex items-center justify-between border-b border-green-900 px-8 py-5">
-        <a href="/" className="text-xl font-bold tracking-widest">
-          NULL//DROP
-        </a>
-
-        <a
-          href="/challenges"
-          className="text-sm hover:text-white"
-        >
-          ← BACK TO CHALLENGES
-        </a>
-      </nav>
+      
 
       {/* Challenge Header */}
       <section className="mx-auto max-w-4xl px-8 py-20">

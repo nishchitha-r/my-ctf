@@ -1,62 +1,69 @@
 import { NextResponse } from "next/server";
 import { challenges } from "@/data/challenges";
-import { flags } from "@/lib/flags";
+import { challengeFlags } from "@/data/flags";
 import { addPoints } from "@/lib/scoreboard";
 
 export async function POST(request: Request) {
-  const body = await request.json();
+  try {
+    const body = await request.json();
 
-  const { slug, flag, name } = body;
+    const { slug, flag, name } = body;
 
-  // 1. Validate input
-  if (!slug || !flag || !name) {
-    return NextResponse.json(
-      {
-        correct: false,
-        message: "Missing player name, challenge or flag.",
-      },
-      { status: 400 }
+    // 1. Validate input
+    if (!slug || !flag || !name) {
+      return NextResponse.json(
+        {
+          correct: false,
+          message: "Missing player name, challenge or flag.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // 2. Find the challenge
+    const challenge = challenges.find(
+      (challenge) => challenge.slug === slug
     );
-  }
 
-  // 2. Find the challenge
-  const challenge = challenges.find(
-    (challenge) => challenge.slug === slug
-  );
+    if (!challenge) {
+      return NextResponse.json(
+        {
+          correct: false,
+          message: "Challenge not found.",
+        },
+        { status: 404 }
+      );
+    }
 
-  if (!challenge) {
-    return NextResponse.json(
-      {
+    // 3. Get the secret flag from the SERVER-ONLY file
+    const correctFlag = challengeFlags[slug];
+
+    if (!correctFlag) {
+      return NextResponse.json(
+        {
+          correct: false,
+          message: "Challenge configuration error.",
+        },
+        { status: 500 }
+      );
+    }
+
+    // 4. Check submitted flag
+    if (flag.trim() !== correctFlag) {
+      return NextResponse.json({
         correct: false,
-        message: "Challenge not found.",
-      },
-      { status: 404 }
-    );
-  }
+        message: "Incorrect flag. Keep investigating.",
+      });
+    }
 
-  // 3. Get the correct flag from the SERVER-ONLY flag store
-  const correctFlag = flags[slug];
-
-  if (!correctFlag) {
-    return NextResponse.json(
-      {
-        correct: false,
-        message: "Flag configuration not found.",
-      },
-      { status: 500 }
-    );
-  }
-
-  // 4. Check submitted flag
-  if (flag.trim() === correctFlag) {
-    // 5. Add points
+    // 5. Award points
     const added = await addPoints(
-      name,
+      name.trim(),
       challenge.points,
       challenge.slug
     );
 
-    // 6. Prevent duplicate scoring
+    // 6. Prevent duplicate solves
     if (!added) {
       return NextResponse.json({
         correct: false,
@@ -65,16 +72,21 @@ export async function POST(request: Request) {
       });
     }
 
+    // 7. Success
     return NextResponse.json({
       correct: true,
       message: `Correct! You earned ${challenge.points} points.`,
       points: challenge.points,
     });
-  }
+  } catch (error) {
+    console.error("Submission error:", error);
 
-  // 7. Wrong flag
-  return NextResponse.json({
-    correct: false,
-    message: "Incorrect flag. Keep investigating.",
-  });
+    return NextResponse.json(
+      {
+        correct: false,
+        message: "Something went wrong while processing your submission.",
+      },
+      { status: 500 }
+    );
+  }
 }

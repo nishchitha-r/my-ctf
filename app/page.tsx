@@ -2,23 +2,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-black text-green-400 font-mono">
       {/* Navigation */}
-      <nav className="flex items-center justify-between border-b border-green-900 px-8 py-5">
-        <div className="text-xl font-bold tracking-widest">
-          NULL//DROP
-        </div>
-
-        <div className="flex gap-6 text-sm">
-          <a href="/" className="hover:text-white">
-            HOME
-          </a>
-          <a href="/challenges" className="hover:text-white">
-            CHALLENGES
-          </a>
-          <a href="/scoreboard" className="hover:text-white">
-            SCOREBOARD
-          </a>
-        </div>
-      </nav>
+      
 
       {/* Hero Section */}
       <section className="flex min-h-[70vh] flex-col items-center justify-center px-6 text-center">

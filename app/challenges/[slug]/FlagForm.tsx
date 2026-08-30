@@ -6,31 +6,25 @@ type FlagFormProps = {
   slug: string;
 };
 
-const PLAYER_NAME_KEY = "null-drop-player-name";
-
 export default function FlagForm({ slug }: FlagFormProps) {
   const [flag, setFlag] = useState("");
   const [name, setName] = useState("");
-  const [nameInput, setNameInput] = useState("");
   const [nameLocked, setNameLocked] = useState(false);
-
   const [message, setMessage] = useState("");
   const [correct, setCorrect] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Load saved player name
   useEffect(() => {
-    const savedName = localStorage.getItem(PLAYER_NAME_KEY);
+    const savedName = localStorage.getItem("ctf_player_name");
 
     if (savedName) {
       setName(savedName);
-      setNameInput(savedName);
       setNameLocked(true);
     }
   }, []);
 
-  function saveName() {
-    const trimmedName = nameInput.trim();
+  function lockName() {
+    const trimmedName = name.trim();
 
     if (!trimmedName) {
       setMessage("Enter your player name first.");
@@ -38,25 +32,16 @@ export default function FlagForm({ slug }: FlagFormProps) {
       return;
     }
 
-    localStorage.setItem(PLAYER_NAME_KEY, trimmedName);
-
+    localStorage.setItem("ctf_player_name", trimmedName);
     setName(trimmedName);
-    setNameInput(trimmedName);
     setNameLocked(true);
-
-    setMessage("");
-    setCorrect(null);
-  }
-
-  function changeName() {
-    setNameLocked(false);
-    setMessage("");
-    setCorrect(null);
+    setMessage("Player identity registered.");
+    setCorrect(true);
   }
 
   async function submitFlag() {
     if (!name.trim()) {
-      setMessage("Set your player name first.");
+      setMessage("Register your player name first.");
       setCorrect(false);
       return;
     }
@@ -79,7 +64,7 @@ export default function FlagForm({ slug }: FlagFormProps) {
         body: JSON.stringify({
           name,
           slug,
-          flag: flag.trim(),
+          flag,
         }),
       });
 
@@ -87,13 +72,9 @@ export default function FlagForm({ slug }: FlagFormProps) {
 
       setCorrect(data.correct);
       setMessage(data.message);
-
-      if (data.correct) {
-        setFlag("");
-      }
     } catch {
       setCorrect(false);
-      setMessage("Unable to reach the submission server.");
+      setMessage("Submission failed. Try again.");
     } finally {
       setLoading(false);
     }
@@ -101,34 +82,26 @@ export default function FlagForm({ slug }: FlagFormProps) {
 
   return (
     <div className="mt-10">
-      {/* PLAYER IDENTITY */}
       <label className="text-xs tracking-widest text-green-700">
-        PLAYER NAME
+        PLAYER IDENTITY
       </label>
 
       <div className="mt-3 flex flex-col gap-3 sm:flex-row">
         <input
           type="text"
-          value={nameInput}
-          onChange={(event) => setNameInput(event.target.value)}
+          value={name}
+          onChange={(event) => setName(event.target.value)}
           disabled={nameLocked}
           placeholder="Enter your name"
-          className="flex-1 border border-green-900 bg-black px-4 py-3 text-green-400 outline-none focus:border-green-400 disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex-1 border border-green-900 bg-black px-4 py-3 text-green-400 outline-none focus:border-green-400 disabled:opacity-60"
         />
 
-        {nameLocked ? (
+        {!nameLocked && (
           <button
-            onClick={changeName}
-            className="border border-green-900 px-5 py-3 font-bold tracking-widest transition hover:border-green-500 hover:bg-green-500 hover:text-black"
+            onClick={lockName}
+            className="border border-green-500 px-6 py-3 font-bold tracking-widest transition hover:bg-green-500 hover:text-black"
           >
-            CHANGE NAME
-          </button>
-        ) : (
-          <button
-            onClick={saveName}
-            className="border border-green-500 px-5 py-3 font-bold tracking-widest transition hover:bg-green-500 hover:text-black"
-          >
-            LOCK NAME
+            REGISTER
           </button>
         )}
       </div>
@@ -139,7 +112,6 @@ export default function FlagForm({ slug }: FlagFormProps) {
         </p>
       )}
 
-      {/* FLAG */}
       <label className="mt-6 block text-xs tracking-widest text-green-700">
         ENTER FLAG
       </label>
@@ -156,17 +128,11 @@ export default function FlagForm({ slug }: FlagFormProps) {
         <button
           onClick={submitFlag}
           disabled={loading || !nameLocked}
-          className="border border-green-500 px-6 py-3 font-bold tracking-widest transition hover:bg-green-500 hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
+          className="border border-green-500 px-6 py-3 font-bold tracking-widest transition hover:bg-green-500 hover:text-black disabled:opacity-50"
         >
           {loading ? "CHECKING..." : "SUBMIT"}
         </button>
       </div>
-
-      {!nameLocked && (
-        <p className="mt-3 text-xs text-yellow-600">
-          Lock your player name before submitting a flag.
-        </p>
-      )}
 
       {message && (
         <p

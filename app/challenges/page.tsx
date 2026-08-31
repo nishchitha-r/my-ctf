@@ -1,3 +1,5 @@
+import { getChallengeStatus } from "@/lib/challengeStatus";
+
 const challenges = [
   {
     number: "01",
@@ -28,11 +30,16 @@ const challenges = [
   },
 ];
 
-export default function Challenges() {
+export default async function Challenges() {
+  const challengesWithStatus = await Promise.all(
+    challenges.map(async (challenge) => ({
+      ...challenge,
+      enabled: await getChallengeStatus(challenge.slug),
+    }))
+  );
+
   return (
     <main className="min-h-screen bg-black text-green-400 font-mono">
-      {/* Navigation */}
-      
 
       {/* Header */}
       <section className="mx-auto max-w-5xl px-8 py-16">
@@ -52,12 +59,17 @@ export default function Challenges() {
       {/* Challenge List */}
       <section className="mx-auto max-w-5xl px-8 pb-20">
         <div className="space-y-5">
-          {challenges.map((challenge) => (
+          {challengesWithStatus.map((challenge) => (
             <div
               key={challenge.number}
-              className="border border-green-900 p-6 transition hover:border-green-400"
+              className={`border p-6 transition ${
+                challenge.enabled
+                  ? "border-green-900 hover:border-green-400"
+                  : "border-red-900 opacity-60"
+              }`}
             >
               <div className="flex flex-col justify-between gap-6 md:flex-row">
+                
                 <div>
                   <p className="text-xs tracking-widest text-green-700">
                     {challenge.number} // {challenge.category}
@@ -73,6 +85,18 @@ export default function Challenges() {
                 </div>
 
                 <div className="flex flex-col items-start gap-3 md:items-end">
+                  
+                  {/* Status */}
+                  <span
+                    className={`border px-3 py-1 text-xs ${
+                      challenge.enabled
+                        ? "border-green-500 text-green-400"
+                        : "border-red-500 text-red-500"
+                    }`}
+                  >
+                    {challenge.enabled ? "● ACTIVE" : "● DISABLED"}
+                  </span>
+
                   <span className="border border-green-900 px-3 py-1 text-xs">
                     {challenge.difficulty}
                   </span>
@@ -81,12 +105,19 @@ export default function Challenges() {
                     {challenge.points} PTS
                   </span>
 
-                  <a
-  href={`/challenges/${challenge.slug}`}
-  className="border border-green-500 px-5 py-2 text-xs font-bold tracking-widest transition hover:bg-green-500 hover:text-black"
->
-  ACCESS →
-</a>
+                  {/* Access button */}
+                  {challenge.enabled ? (
+                    <a
+                      href={`/challenges/${challenge.slug}`}
+                      className="border border-green-500 px-5 py-2 text-xs font-bold tracking-widest transition hover:bg-green-500 hover:text-black"
+                    >
+                      ACCESS →
+                    </a>
+                  ) : (
+                    <span className="border border-red-900 px-5 py-2 text-xs font-bold tracking-widest text-red-500">
+                      LOCKED
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

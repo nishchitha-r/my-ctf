@@ -2,39 +2,117 @@
 
 import { useEffect, useState } from "react";
 
-const COMPETITION_DURATION = 2 * 60 * 60;
+type Competition = {
+  start_time: string | null;
+  end_time: string | null;
+  duration_minutes: number;
+};
 
 export default function CompetitionTimer() {
-  const [remaining, setRemaining] = useState(COMPETITION_DURATION);
+  const [remaining, setRemaining] = useState(0);
 
   useEffect(() => {
-    const startKey = "null-drop-start-time";
+    let endTime: number | null = null;
 
-    let startTime = localStorage.getItem(startKey);
+    async function loadCompetition() {
+      try {
+        const response = await fetch("/api/competition", {
+          cache: "no-store",
+        });
 
-    if (!startTime) {
-      startTime = Date.now().toString();
-      localStorage.setItem(startKey, startTime);
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          endTime = null;
+          setRemaining(0);
+          return;
+        }
+
+        const competition: Competition = data.competition;
+
+        if (
+          !competition.start_time ||
+          !competition.end_time
+        ) {
+          endTime = null;
+          setRemaining(0);
+          return;
+        }
+
+        const startTime = new Date(
+          competition.start_time
+        ).getTime();
+
+        const competitionEndTime = new Date(
+          competition.end_time
+        ).getTime();
+
+        const now = Date.now();
+
+        if (now < startTime) {
+          endTime = null;
+          setRemaining(0);
+          return;
+        }
+
+        if (now >= competitionEndTime) {
+          endTime = null;
+          setRemaining(0);
+          return;
+        }
+
+        endTime = competitionEndTime;
+
+        setRemaining(
+          Math.floor(
+            (competitionEndTime - now) / 1000
+          )
+        );
+      } catch (error) {
+        console.error("Timer error:", error);
+
+        endTime = null;
+        setRemaining(0);
+      }
     }
 
-    const start = Number(startTime);
+    loadCompetition();
 
-    function updateTimer() {
-      const elapsed = Math.floor((Date.now() - start) / 1000);
-      const left = Math.max(COMPETITION_DURATION - elapsed, 0);
+    // Check START/STOP status every 5 seconds
+    const pollInterval = setInterval(() => {
+      loadCompetition();
+    }, 5000);
+
+    // Update countdown every second
+    const countdownInterval = setInterval(() => {
+      if (endTime === null) {
+        return;
+      }
+
+      const now = Date.now();
+
+      const left = Math.max(
+        Math.floor((endTime - now) / 1000),
+        0
+      );
 
       setRemaining(left);
-    }
+    }, 1000);
 
-    updateTimer();
-
-    const interval = setInterval(updateTimer, 1000);
-
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(pollInterval);
+      clearInterval(countdownInterval);
+    };
   }, []);
 
-  const hours = Math.floor(remaining / 3600);
-  const minutes = Math.floor((remaining % 3600) / 60);
+  const hours = Math.floor(
+    remaining / 3600
+  );
+
+  const minutes = Math.floor(
+    (remaining % 3600) / 60
+  );
+
   const seconds = remaining % 60;
 
   const formattedTime =

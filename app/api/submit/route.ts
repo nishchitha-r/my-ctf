@@ -3,6 +3,8 @@ import { challenges } from "@/data/challenges";
 import { challengeFlags } from "@/data/flags";
 import { addPoints } from "@/lib/scoreboard";
 import { getChallengeStatus } from "@/lib/challengeStatus";
+import { getCompetition } from "@/lib/competition";
+import { supabase } from "@/lib/supabase";
 
 // Rate limiting
 const attempts = new Map<
@@ -11,20 +13,23 @@ const attempts = new Map<
 >();
 
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 10 * 1000; // 10 seconds
+const WINDOW_MS = 10 * 1000;
 
 export async function POST(request: Request) {
   try {
-    // 1. Identify the requester
-    const forwardedFor = request.headers.get("x-forwarded-for");
-    const realIp = request.headers.get("x-real-ip");
+    // 1. Identify requester
+    const forwardedFor =
+      request.headers.get("x-forwarded-for");
+
+    const realIp =
+      request.headers.get("x-real-ip");
 
     const ip =
       forwardedFor?.split(",")[0].trim() ||
       realIp ||
       "unknown";
 
-    // 2. Check rate limit
+    // 2. Rate limit
     const now = Date.now();
     const existing = attempts.get(ip);
 
@@ -52,94 +57,176 @@ export async function POST(request: Request) {
       });
     }
 
-    // 3. Read request body
-    const body = await request.json();
+    // 3. Check competition
+    const competition = await getCompetition();
 
-    const { slug, flag, name } = body;
-
-    // 4. Validate input
-    if (!slug || !flag || !name) {
+    if (
+      !competition.is_active ||
+      !competition.start_time ||
+      !competition.end_time
+    ) {
       return NextResponse.json(
         {
           correct: false,
-          message: "Missing player name, challenge or flag.",
+          message:
+            "Competition is not currently active.",
+        },
+        { status: 403 }
+      );
+    }
+
+    const startTime = new Date(
+      competition.start_time
+    ).getTime();
+
+    const endTime = new Date(
+      competition.end_time
+    ).getTime();
+
+    const currentTime = Date.now();
+
+    if (
+      currentTime < startTime ||
+      currentTime >= endTime
+    ) {
+      return NextResponse.json(
+        {
+          correct: false,
+          message: "Competition has ended.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 4. Read request
+    const body = await request.json();
+
+    const {
+      playerToken,
+      slug,
+      flag,
+    } = body;
+
+    // 5. Validate input
+    if (!playerToken || !slug || !flag) {
+      return NextResponse.json(
+        {
+          correct: false,
+          message:
+            "Missing player, challenge or flag.",
         },
         { status: 400 }
       );
     }
 
-    // 5. Find the challenge
+    // 6. Find player using server-generated token
+    const { data: player, error: playerError } =
+      await supabase
+        .from("players")
+        .select("id, name")
+        .eq("player_token", playerToken)
+        .maybeSingle();
+
+    if (playerError) {
+      throw new Error(playerError.message);
+    }
+
+    if (!player) {
+      return NextResponse.json(
+        {
+          correct: false,
+          message:
+            "Invalid player session.",
+        },
+        { status: 401 }
+      );
+    }
+
+    // 7. Find challenge
     const challenge = challenges.find(
-      (challenge) => challenge.slug === slug
+      (challenge) =>
+        challenge.slug === slug
     );
 
     if (!challenge) {
       return NextResponse.json(
         {
           correct: false,
-          message: "Challenge not found.",
+          message:
+            "Challenge not found.",
         },
         { status: 404 }
       );
     }
-    // Check whether the challenge is enabled
-const enabled = await getChallengeStatus(slug);
 
-if (!enabled) {
-  return NextResponse.json(
-    {
-      correct: false,
-      message: "This challenge is currently disabled.",
-    },
-    { status: 403 }
-  );
-}
+    // 8. Check challenge status
+    const enabled =
+      await getChallengeStatus(slug);
 
-    // 6. Get the secret flag from the server-only file
-    const correctFlag = challengeFlags[slug];
+    if (!enabled) {
+      return NextResponse.json(
+        {
+          correct: false,
+          message:
+            "This challenge is currently disabled.",
+        },
+        { status: 403 }
+      );
+    }
+
+    // 9. Get secret flag
+    const correctFlag =
+      challengeFlags[slug];
 
     if (!correctFlag) {
       return NextResponse.json(
         {
           correct: false,
-          message: "Challenge configuration error.",
+          message:
+            "Challenge configuration error.",
         },
         { status: 500 }
       );
     }
 
-    // 7. Check submitted flag
+    // 10. Check flag
     if (flag.trim() !== correctFlag) {
       return NextResponse.json({
         correct: false,
-        message: "Incorrect flag. Keep investigating.",
+        message:
+          "Incorrect flag. Keep investigating.",
       });
     }
 
-    // 8. Award points
+    // 11. Award points to authenticated player
     const added = await addPoints(
-      name.trim(),
+      player.name,
       challenge.points,
       challenge.slug
     );
 
-    // 9. Prevent duplicate solves
+    // 12. Prevent duplicate solves
     if (!added) {
       return NextResponse.json({
         correct: false,
         alreadySolved: true,
-        message: "You already solved this challenge.",
+        message:
+          "You already solved this challenge.",
       });
     }
 
-    // 10. Success
+    // 13. Success
     return NextResponse.json({
       correct: true,
-      message: `Correct! You earned ${challenge.points} points.`,
+      message:
+        `Correct! You earned ${challenge.points} points.`,
       points: challenge.points,
     });
   } catch (error) {
-    console.error("Submission error:", error);
+    console.error(
+      "Submission error:",
+      error
+    );
 
     return NextResponse.json(
       {

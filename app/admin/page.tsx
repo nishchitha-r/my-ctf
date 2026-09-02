@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { challenges } from "@/data/challenges";
 import { getCompetition } from "@/lib/competition";
+import DeletePlayersButton from "./DeletePlayersButton";
 
 export default async function AdminPage() {
   // Check admin authentication
@@ -86,6 +87,8 @@ export default async function AdminPage() {
             </div>
 
             <div className="flex flex-wrap gap-3">
+
+              {/* START */}
               <form
                 action="/api/admin/competition"
                 method="POST"
@@ -107,6 +110,7 @@ export default async function AdminPage() {
                 </button>
               </form>
 
+              {/* STOP */}
               <form
                 action="/api/admin/competition"
                 method="POST"
@@ -127,31 +131,39 @@ export default async function AdminPage() {
                   STOP
                 </button>
               </form>
+
             </div>
           </div>
 
-         <div className="mt-6 border-t border-green-950 pt-5 text-sm text-green-800">
-  <div>
-    Duration: {competition.duration_minutes} minutes
-  </div>
+          {/* COMPETITION DETAILS */}
+          <div className="mt-6 border-t border-green-950 pt-5 text-sm text-green-800">
 
-  <div className="mt-2">
-    Start Time:{" "}
-    {competition.start_time
-      ? new Date(competition.start_time).toLocaleString()
-      : "NOT STARTED"}
-  </div>
+            <div>
+              Duration: {competition.duration_minutes} minutes
+            </div>
 
-  <div className="mt-2">
-    End Time:{" "}
-    {competition.end_time
-      ? new Date(competition.end_time).toLocaleString()
-      : "NOT SET"}
-  </div>
-</div>
+            <div className="mt-2">
+              Start Time:{" "}
+              {competition.start_time
+                ? new Date(
+                    competition.start_time
+                  ).toLocaleString()
+                : "NOT STARTED"}
+            </div>
+
+            <div className="mt-2">
+              End Time:{" "}
+              {competition.end_time
+                ? new Date(
+                    competition.end_time
+                  ).toLocaleString()
+                : "NOT SET"}
+            </div>
+
+          </div>
         </div>
 
-        {/* SCOREBOARD */}
+        {/* SCOREBOARD CONTROL */}
         <div className="mt-8 border border-green-900 p-6">
           <h2 className="text-xl font-bold tracking-widest">
             SCOREBOARD
@@ -161,6 +173,7 @@ export default async function AdminPage() {
             {count ?? 0} registered players
           </p>
 
+          {/* RESET SCORES */}
           <form
             action="/api/admin/reset"
             method="POST"
@@ -172,6 +185,9 @@ export default async function AdminPage() {
               RESET SCOREBOARD
             </button>
           </form>
+
+          {/* DELETE ALL PLAYERS */}
+          <DeletePlayersButton />
         </div>
 
         {/* CHALLENGE CONTROL */}
@@ -183,7 +199,8 @@ export default async function AdminPage() {
             </h2>
 
             <p className="mt-2 text-sm text-green-800">
-              Enable or disable challenges during the competition.
+              Enable or disable challenges during the
+              competition.
             </p>
           </div>
 
@@ -196,9 +213,12 @@ export default async function AdminPage() {
                 key={challenge.slug}
                 className="flex flex-col gap-5 border-b border-green-950 p-6 sm:flex-row sm:items-center sm:justify-between"
               >
+
+                {/* CHALLENGE INFO */}
                 <div>
                   <p className="text-xs tracking-widest text-green-700">
-                    {challenge.number} // {challenge.category}
+                    {challenge.number} //{" "}
+                    {challenge.category}
                   </p>
 
                   <h3 className="mt-2 text-xl font-bold">
@@ -210,6 +230,7 @@ export default async function AdminPage() {
                   </p>
                 </div>
 
+                {/* ENABLE / DISABLE */}
                 <form
                   action="/api/admin/challenges"
                   method="POST"
@@ -239,6 +260,7 @@ export default async function AdminPage() {
                       : "DISABLED ✕"}
                   </button>
                 </form>
+
               </div>
             );
           })}

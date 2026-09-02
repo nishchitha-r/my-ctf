@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getScoreboard } from "@/lib/scoreboard";
 
 export default async function ScoreboardPage() {
@@ -61,7 +63,9 @@ export default async function ScoreboardPage() {
                 {/* Latest Solve */}
                 <span className="text-right text-xs">
                   {player.latestSolve
-                    ? new Date(player.latestSolve).toLocaleTimeString()
+                    ? new Date(
+                        player.latestSolve
+                      ).toLocaleTimeString()
                     : "-"}
                 </span>
               </div>
@@ -69,6 +73,4 @@ export default async function ScoreboardPage() {
           )}
         </div>
       </section>
-    </main>
-  );
-}
+   

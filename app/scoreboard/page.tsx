@@ -73,4 +73,6 @@ export default async function ScoreboardPage() {
           )}
         </div>
       </section>
-   
+    </main>
+  );
+}

@@ -2,18 +2,15 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase } from "@/lib/supabase";
 
-export async function POST() {
+export async function POST(request: Request) {
   const cookieStore = await cookies();
   const authenticated =
     cookieStore.get("admin_authenticated");
 
   if (authenticated?.value !== "true") {
-    return NextResponse.json(
-      {
-        success: false,
-        message: "Unauthorized.",
-      },
-      { status: 401 }
+    return NextResponse.redirect(
+      new URL("/admin/login", request.url),
+      303
     );
   }
 
@@ -26,9 +23,7 @@ export async function POST() {
         .neq("id", 0);
 
     if (submissionsError) {
-      throw new Error(
-        submissionsError.message
-      );
+      throw new Error(submissionsError.message);
     }
 
     // Keep players, but reset their scores
@@ -42,21 +37,17 @@ export async function POST() {
       throw new Error(playersError.message);
     }
 
-    return NextResponse.json({
-      success: true,
-      message:
-        "Scoreboard reset successfully.",
-    });
+    // Return to admin panel after successful reset
+    return NextResponse.redirect(
+      new URL("/admin", request.url),
+      303
+    );
   } catch (error) {
     console.error("Reset error:", error);
 
-    return NextResponse.json(
-      {
-        success: false,
-        message:
-          "Failed to reset scoreboard.",
-      },
-      { status: 500 }
+    return NextResponse.redirect(
+      new URL("/admin?reset=failed", request.url),
+      303
     );
   }
 }
